@@ -7,16 +7,10 @@ export default function Work() {
   const [selectedProject, setSelectedProject] = useState(null);
 
 useEffect(() => {
-    fetch('http:backend-port-production-d14a.up.railway.app')
+ const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+    
+    fetch(`${apiUrl}/api/projects`)
       .then((res) => res.json())
-      .then((data) => {
-        setProjects(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching projects from backend:", err);
-        setLoading(false);
-      });
   }, []);
 
   return (
