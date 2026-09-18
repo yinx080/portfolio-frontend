@@ -6,19 +6,22 @@ export default function Work() {
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
 
+  // 1. Centralized API URL for both fetching and video sources
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
-useEffect(() => {
-  fetch(`${import.meta.env.VITE_API_URL}/api/projects`)
-    .then((res) => res.json())
-    .then((data) => {
-      setProjects(data);
-      setLoading(false);
-    })
-    .catch((err) => {
-      console.error("Error fetching projects from backend:", err);
-      setLoading(false);
-    });
-}, []);
+  useEffect(() => {
+    // Cleaned up fetch to use the variable
+    fetch(`${apiUrl}/api/projects`)
+      .then((res) => res.json())
+      .then((data) => {
+        setProjects(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching projects from backend:", err);
+        setLoading(false);
+      });
+  }, [apiUrl]);
 
   return (
     // FIX 1: Removed 'overflow-hidden' so scrolling actually works
@@ -74,7 +77,8 @@ useEffect(() => {
                     playsInline
                     className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300 outline-none"
                   >
-                    <source src={project.video_url} type="video/mp4" />
+                    {/* 2. Attached the apiUrl to the thumbnail source */}
+                    <source src={`${apiUrl}${project.video_url}`} type="video/mp4" />
                   </video>
                 </div>
 
@@ -116,7 +120,8 @@ useEffect(() => {
                   &times;
                 </button>
                 <video 
-                  src={selectedProject.video_url}
+                  // 3. Attached the apiUrl to the modal playback source
+                  src={`${apiUrl}${selectedProject.video_url}`}
                   controls 
                   autoPlay
                   className="max-w-full max-h-[90vh] object-contain outline-none rounded-xl"
