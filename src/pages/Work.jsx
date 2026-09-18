@@ -7,7 +7,7 @@ export default function Work() {
   const [selectedProject, setSelectedProject] = useState(null);
 
 useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/projects')
+    fetch('http:backend-port-production-d14a.up.railway.app')
       .then((res) => res.json())
       .then((data) => {
         setProjects(data);
