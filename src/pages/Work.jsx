@@ -6,13 +6,21 @@ export default function Work() {
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
 
+
 useEffect(() => {
- const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-    
-    fetch(`${apiUrl}/api/projects`)
+    fetch('http://127.0.0.1:8000/api/projects')
       .then((res) => res.json())
+      .then((data) => {
+        setProjects(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching projects from backend:", err);
+        setLoading(false);
+      });
   }, []);
 
+  
   return (
     // FIX 1: Removed 'overflow-hidden' so scrolling actually works
     <div className="min-h-screen bg-black text-white relative">
