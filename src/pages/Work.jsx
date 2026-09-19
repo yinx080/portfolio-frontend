@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Grid cells are always 16:9 so the layout stays tidy. Each video sits inside
+// its cell at its own real aspect ratio (which the backend reads automatically).
+const CELL_ASPECT = 16 / 9;
+
+const aspectOf = (project) =>
+  Number.isFinite(project.aspect) && project.aspect > 0 ? project.aspect : CELL_ASPECT;
+
+// Size of a video box inside a 16:9 cell, "contain" style:
+// wider than the cell -> fill the width; narrower -> fill the height.
+const cellBoxStyle = (aspect) => ({
+  aspectRatio: `${aspect}`,
+  width: aspect >= CELL_ASPECT ? '100%' : `${(aspect / CELL_ASPECT) * 100}%`,
+});
+
 /**
  * Grid preview: shows the poster instantly, downloads the small muted
  * thumbnail only when the card is near the viewport, and pauses it when
@@ -37,8 +51,40 @@ function PreviewVideo({ src, poster }) {
       loop
       playsInline
       preload="none"
-      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300 outline-none"
+      className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300 outline-none"
     />
+  );
+}
+
+/**
+ * Modal player: the poster is shown immediately (so the open animation
+ * always has something to scale), and the full video fades in on top once
+ * its first frame is ready. The box never changes size.
+ */
+function ModalVideo({ src, poster }) {
+  const [ready, setReady] = useState(false);
+
+  return (
+    <>
+      {poster && (
+        <img
+          src={poster}
+          alt=""
+          className="absolute inset-0 w-full h-full object-contain"
+        />
+      )}
+      <video
+        src={src}
+        controls
+        autoPlay
+        playsInline
+        onLoadedData={() => setReady(true)}
+        onError={() => setReady(true)}
+        className={`absolute inset-0 w-full h-full object-contain bg-black outline-none transition-opacity duration-500 ${
+          ready ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
+    </>
   );
 }
 
@@ -108,18 +154,27 @@ export default function Work() {
           /* Video Grid */
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project) => (
-              <motion.div
+              <div
                 key={project.id}
-                layoutId={`project-container-${project.id}`}
                 onClick={() => setSelectedProject(project)}
                 className="group relative bg-neutral-900 rounded-lg overflow-hidden shadow-xl cursor-pointer outline-none"
               >
-                {/* Thumbnail Video (small, muted, lazy-loaded) */}
-                <div className="relative aspect-video w-full overflow-hidden bg-black outline-none">
-                  <PreviewVideo
-                    src={asset(project.thumb_url || project.video_url)}
-                    poster={asset(project.poster_url)}
-                  />
+                {/* Uniform 16:9 cell that keeps the grid tidy */}
+                <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
+                  {/*
+                    The shared element is the video box at its REAL aspect ratio,
+                    so it scales into the modal without stretching, whatever the ratio.
+                  */}
+                  <motion.div
+                    layoutId={`project-container-${project.id}`}
+                    style={{ borderRadius: 0, ...cellBoxStyle(aspectOf(project)) }}
+                    className="relative overflow-hidden bg-black outline-none"
+                  >
+                    <PreviewVideo
+                      src={asset(project.thumb_url || project.video_url)}
+                      poster={asset(project.poster_url)}
+                    />
+                  </motion.div>
                 </div>
 
                 {/* Project Info */}
@@ -131,7 +186,7 @@ export default function Work() {
                     {project.title}
                   </h3>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
@@ -149,24 +204,30 @@ export default function Work() {
               className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md cursor-pointer"
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 pointer-events-none">
+              {/*
+                Box sized from the video's aspect ratio: as large as possible
+                while fitting within 92vw x 85vh. Its size never depends on the
+                video file loading, so nothing pops.
+              */}
               <motion.div
                 layoutId={`project-container-${selectedProject.id}`}
-                className="relative w-auto h-auto max-w-[95vw] max-h-[90vh] bg-black shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden pointer-events-auto outline-none flex justify-center items-center"
+                style={{
+                  borderRadius: 12,
+                  aspectRatio: `${aspectOf(selectedProject)}`,
+                  width: `min(92vw, calc(85vh * ${aspectOf(selectedProject)}))`,
+                }}
+                className="relative bg-black shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden pointer-events-auto outline-none"
               >
+                <ModalVideo
+                  src={asset(selectedProject.video_url)}
+                  poster={asset(selectedProject.poster_url)}
+                />
                 <button
                   onClick={() => setSelectedProject(null)}
                   className="absolute top-4 right-6 text-white/70 hover:text-white transition-colors text-4xl font-light z-50 outline-none drop-shadow-md"
                 >
                   &times;
                 </button>
-                {/* Full-quality video: only downloaded once a card is clicked */}
-                <video
-                  src={asset(selectedProject.video_url)}
-                  poster={asset(selectedProject.poster_url)}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-[90vh] object-contain outline-none rounded-xl"
-                />
               </motion.div>
             </div>
           </>
