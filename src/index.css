@@ -1,1 +1,14 @@
 @import "tailwindcss";
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  background-color: #000;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
