@@ -1,19 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Grid cells are always 16:9 so the layout stays tidy. Each video sits inside
-// its cell at its own real aspect ratio (which the backend reads automatically).
+// Grid cells are always 16:9 and the video fills them (cropped, no black bars).
+// Each video's real aspect ratio comes from the backend automatically.
 const CELL_ASPECT = 16 / 9;
+
+// Same timing for the shared-element move and the crop reveal so they stay in sync.
+// (These are Framer Motion's default layout timings, made explicit.)
+const MORPH = { duration: 0.45, ease: [0.4, 0, 0.1, 1] };
+
+const FULL_CLIP = 'inset(0% 0% 0% 0%)';
 
 const aspectOf = (project) =>
   Number.isFinite(project.aspect) && project.aspect > 0 ? project.aspect : CELL_ASPECT;
 
-// Size of a video box inside a 16:9 cell, "contain" style:
-// wider than the cell -> fill the width; narrower -> fill the height.
-const cellBoxStyle = (aspect) => ({
+/**
+ * Card state: the video box has its REAL ratio and is scaled so it covers the
+ * 16:9 cell (like object-cover). The cell clips the overflow.
+ * Because the box keeps the video's true ratio, it can scale up into the
+ * modal without any stretching.
+ */
+const coverBoxStyle = (aspect) => ({
   aspectRatio: `${aspect}`,
-  width: aspect >= CELL_ASPECT ? '100%' : `${(aspect / CELL_ASPECT) * 100}%`,
+  width: `${Math.max(1, aspect / CELL_ASPECT) * 100}%`,
 });
+
+/**
+ * The part of the full video box that is visible inside the 16:9 cell.
+ * The modal starts (and ends, when closing) clipped to this, then reveals
+ * the rest as it grows, so the picture never distorts.
+ */
+const cropInset = (aspect) => {
+  if (aspect < CELL_ASPECT) {
+    const v = ((1 - aspect / CELL_ASPECT) / 2) * 100;
+    return `inset(${v}% 0% ${v}% 0%)`;
+  }
+  const h = ((1 - CELL_ASPECT / aspect) / 2) * 100;
+  return `inset(0% ${h}% 0% ${h}%)`;
+};
 
 /**
  * Grid preview: shows the poster instantly, downloads the small muted
@@ -159,16 +183,17 @@ export default function Work() {
                 onClick={() => setSelectedProject(project)}
                 className="group relative bg-neutral-900 rounded-lg overflow-hidden shadow-xl cursor-pointer outline-none"
               >
-                {/* Uniform 16:9 cell that keeps the grid tidy */}
+                {/* Uniform 16:9 cell: clips the video so it fills the card */}
                 <div className="relative aspect-video w-full overflow-hidden bg-black flex items-center justify-center">
                   {/*
-                    The shared element is the video box at its REAL aspect ratio,
-                    so it scales into the modal without stretching, whatever the ratio.
+                    Shared element: the video at its real ratio, covering the cell.
+                    Whatever sticks out of the cell is clipped by the cell itself.
                   */}
                   <motion.div
                     layoutId={`project-container-${project.id}`}
-                    style={{ borderRadius: 0, ...cellBoxStyle(aspectOf(project)) }}
-                    className="relative overflow-hidden bg-black outline-none"
+                    transition={MORPH}
+                    style={{ borderRadius: 0, ...coverBoxStyle(aspectOf(project)) }}
+                    className="relative flex-none overflow-hidden bg-black outline-none"
                   >
                     <PreviewVideo
                       src={asset(project.thumb_url || project.video_url)}
@@ -205,12 +230,16 @@ export default function Work() {
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 pointer-events-none">
               {/*
-                Box sized from the video's aspect ratio: as large as possible
-                while fitting within 92vw x 85vh. Its size never depends on the
-                video file loading, so nothing pops.
+                Box sized from the video's real ratio: as large as possible within
+                92vw x 85vh. It starts clipped to exactly what the card showed and
+                reveals the full frame as it grows (and re-crops when closing).
               */}
               <motion.div
                 layoutId={`project-container-${selectedProject.id}`}
+                initial={{ clipPath: cropInset(aspectOf(selectedProject)) }}
+                animate={{ clipPath: FULL_CLIP }}
+                exit={{ clipPath: cropInset(aspectOf(selectedProject)) }}
+                transition={MORPH}
                 style={{
                   borderRadius: 12,
                   aspectRatio: `${aspectOf(selectedProject)}`,
