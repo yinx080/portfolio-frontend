@@ -1,16 +1,63 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+/**
+ * Grid preview: shows the poster instantly, downloads the small muted
+ * thumbnail only when the card is near the viewport, and pauses it when
+ * it scrolls away.
+ */
+function PreviewVideo({ src, poster }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (video.getAttribute('src') !== src) video.src = src;
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <video
+      ref={ref}
+      poster={poster}
+      muted
+      loop
+      playsInline
+      preload="none"
+      className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300 outline-none"
+    />
+  );
+}
 
 export default function Work() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
 
-  // 1. Centralized API URL for both fetching and video sources
+  // Centralized API URL for both fetching and media sources
   const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
+  // Works with relative paths from the API today, and with full URLs
+  // (e.g. a CDN / R2 bucket) if you move the media later.
+  const asset = (url) => {
+    if (!url) return undefined;
+    return url.startsWith('http') ? url : `${apiUrl}${url}`;
+  };
+
   useEffect(() => {
-    // Cleaned up fetch to use the variable
     fetch(`${apiUrl}/api/projects`)
       .then((res) => res.json())
       .then((data) => {
@@ -24,15 +71,14 @@ export default function Work() {
   }, [apiUrl]);
 
   return (
-    // FIX 1: Removed 'overflow-hidden' so scrolling actually works
     <div className="min-h-screen bg-black text-white relative">
-      
-      {/* FIX 2: Changed 'absolute' to 'fixed' so the video stays glued to the background while you scroll */}
+
+      {/* Fixed so the video stays glued to the background while you scroll */}
       <div className="fixed inset-0 z-0">
-        <video 
-          autoPlay 
-          loop 
-          muted 
+        <video
+          autoPlay
+          loop
+          muted
           playsInline
           className="w-full h-full object-cover"
         >
@@ -43,7 +89,7 @@ export default function Work() {
 
       {/* THE MAIN CONTENT */}
       <div className="relative z-10 px-6 md:px-16 pt-32 pb-20">
-        
+
         {/* Page Header */}
         <div className="max-w-7xl mx-auto mb-16">
           <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4">
@@ -62,24 +108,18 @@ export default function Work() {
           /* Video Grid */
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project) => (
-              <motion.div 
-                key={project.id} 
+              <motion.div
+                key={project.id}
                 layoutId={`project-container-${project.id}`}
                 onClick={() => setSelectedProject(project)}
                 className="group relative bg-neutral-900 rounded-lg overflow-hidden shadow-xl cursor-pointer outline-none"
               >
-                {/* Thumbnail Video */}
+                {/* Thumbnail Video (small, muted, lazy-loaded) */}
                 <div className="relative aspect-video w-full overflow-hidden bg-black outline-none">
-                  <video 
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300 outline-none"
-                  >
-                    {/* 2. Attached the apiUrl to the thumbnail source */}
-                    <source src={`${apiUrl}${project.video_url}`} type="video/mp4" />
-                  </video>
+                  <PreviewVideo
+                    src={asset(project.thumb_url || project.video_url)}
+                    poster={asset(project.poster_url)}
+                  />
                 </div>
 
                 {/* Project Info */}
@@ -109,20 +149,21 @@ export default function Work() {
               className="fixed inset-0 z-40 bg-black/80 backdrop-blur-md cursor-pointer"
             />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 pointer-events-none">
-              <motion.div 
+              <motion.div
                 layoutId={`project-container-${selectedProject.id}`}
                 className="relative w-auto h-auto max-w-[95vw] max-h-[90vh] bg-black shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden pointer-events-auto outline-none flex justify-center items-center"
               >
-                <button 
+                <button
                   onClick={() => setSelectedProject(null)}
                   className="absolute top-4 right-6 text-white/70 hover:text-white transition-colors text-4xl font-light z-50 outline-none drop-shadow-md"
                 >
                   &times;
                 </button>
-                <video 
-                  // 3. Attached the apiUrl to the modal playback source
-                  src={`${apiUrl}${selectedProject.video_url}`}
-                  controls 
+                {/* Full-quality video: only downloaded once a card is clicked */}
+                <video
+                  src={asset(selectedProject.video_url)}
+                  poster={asset(selectedProject.poster_url)}
+                  controls
                   autoPlay
                   className="max-w-full max-h-[90vh] object-contain outline-none rounded-xl"
                 />
