@@ -63,6 +63,12 @@ export default function Rates() {
   const custom = content?.custom || null;
   const fallbackEmail = content?.fallback_email;
 
+  // Keep the cards a sensible width whether there are one, two or five of them.
+  const gridWidth =
+    packages.length === 1 ? 'max-w-md' : packages.length === 2 ? 'max-w-4xl' : 'max-w-7xl';
+  const gridCols =
+    packages.length === 1 ? '' : packages.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
+
   const update = (key) => (event) =>
     setForm((previous) => ({ ...previous, [key]: event.target.value }));
 
@@ -128,7 +134,7 @@ export default function Rates() {
               <motion.div
                 {...RISE}
                 transition={{ ...RISE.transition, delay: 0.05 }}
-                className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"
+                className={`${gridWidth} mx-auto grid grid-cols-1 ${gridCols} gap-6`}
               >
                 {packages.map((pack) => (
                   <div
@@ -176,12 +182,23 @@ export default function Rates() {
               </motion.div>
             )}
 
+            {/* Small print: travel, and anything else that moves the price */}
+            {content?.price_note && (
+              <motion.p
+                {...RISE}
+                transition={{ ...RISE.transition, delay: 0.08 }}
+                className={`${gridWidth} mx-auto mt-6 text-sm text-neutral-500 leading-relaxed`}
+              >
+                {content.price_note}
+              </motion.p>
+            )}
+
             {/* Something else */}
             {custom && (
               <motion.div
                 {...RISE}
                 transition={{ ...RISE.transition, delay: 0.1 }}
-                className="max-w-7xl mx-auto mt-6 p-8 rounded-lg border border-dashed border-white/15 flex flex-col md:flex-row md:items-center justify-between gap-6"
+                className={`${gridWidth} mx-auto mt-10 p-8 rounded-lg border border-dashed border-white/15 flex flex-col md:flex-row md:items-center justify-between gap-6`}
               >
                 <div>
                   <h2 className="text-lg font-bold text-white">{custom.title}</h2>
