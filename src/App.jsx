@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/home';
 import Work from './pages/Work'; // <-- 1. THIS IMPORT IS CRITICAL
+import About from './pages/About';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           </Link>
           <div className="flex gap-8 items-center text-sm tracking-widest uppercase font-semibold">
             <Link to="/work" className="text-gray-200 hover:text-white transition-colors drop-shadow-md">Work</Link>
+            <Link to="/about" className="text-gray-200 hover:text-white transition-colors drop-shadow-md">About</Link>
             <Link to="/rates" className="text-gray-200 hover:text-white transition-colors drop-shadow-md">Inquiries</Link>
           </div>
         </nav>
@@ -24,8 +26,10 @@ function App() {
             <Route path="/" element={<Home />} />
             
             {/* <-- 2. THIS ROUTE NOW POINTS TO YOUR NEW GRID --> */}
-            <Route path="/work" element={<Work />} /> 
-            
+            <Route path="/work" element={<Work />} />
+
+            <Route path="/about" element={<About />} />
+
             <Route path="/rates" element={
               <div className="pt-32 p-10 text-center">
                 <h1 className="text-3xl font-bold">Pricing & Contact coming soon...</h1>
