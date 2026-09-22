@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/home';
 import Work from './pages/Work'; // <-- 1. THIS IMPORT IS CRITICAL
 import About from './pages/About';
+import Rates from './pages/Rates';
 
 function App() {
   return (
@@ -30,11 +31,7 @@ function App() {
 
             <Route path="/about" element={<About />} />
 
-            <Route path="/rates" element={
-              <div className="pt-32 p-10 text-center">
-                <h1 className="text-3xl font-bold">Pricing & Contact coming soon...</h1>
-              </div>
-            } />
+            <Route path="/rates" element={<Rates />} />
           </Routes>
         </main>
       </div>
