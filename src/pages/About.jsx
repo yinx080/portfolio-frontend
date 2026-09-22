@@ -205,10 +205,12 @@ export default function About() {
                           key={service.title}
                           className="p-6 rounded-lg bg-neutral-900/90 backdrop-blur-md border border-white/10 hover:border-white/25 transition-colors"
                         >
-                          <h3 className="text-lg font-bold text-white mb-2">{service.title}</h3>
-                          <p className="text-sm text-gray-400 leading-relaxed">
-                            {service.description}
-                          </p>
+                          <h3 className="text-lg font-bold text-white">{service.title}</h3>
+                          {service.description && (
+                            <p className="mt-2 text-sm text-gray-400 leading-relaxed">
+                              {service.description}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>
